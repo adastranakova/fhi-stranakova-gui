@@ -1,0 +1,40 @@
+<div class="container">
+  <app-page-title title="Create Bike"></app-page-title>
+
+  <app-card>
+    @if (loading()) {
+      <app-loader></app-loader>
+    } @else {
+      <form (ngSubmit)="onSubmit()">
+        @if (errorMessage()) {
+          <div class="alert alert-danger" role="alert">
+            {{ errorMessage() }}
+          </div>
+        }
+
+        <div class="mb-3">
+          <label for="bikeId" class="form-label">Bike ID</label>
+          <input
+            type="text"
+            class="form-control"
+            id="bikeId"
+            [value]="bikeId()"
+            (input)="updateBikeId($any($event.target).value)"
+            placeholder="Enter bike ID (e.g., BIKE001)"
+            required>
+        </div>
+
+        <div class="row justify-content-end">
+          <div class="col-auto">
+            <button type="button" class="btn btn-secondary me-2" routerLink="/bikes">
+              Cancel
+            </button>
+            <button type="submit" class="btn btn-primary">
+              <i class="bi bi-check"></i> Create Bike
+            </button>
+          </div>
+        </div>
+      </form>
+    }
+  </app-card>
+</div>

@@ -1,0 +1,64 @@
+<div class="container">
+  <app-page-title title="Create Station"></app-page-title>
+
+  <app-card>
+    @if (loading()) {
+      <app-loader></app-loader>
+    } @else {
+      <form (ngSubmit)="onSubmit()">
+        @if (errorMessage()) {
+          <div class="alert alert-danger" role="alert">
+            {{ errorMessage() }}
+          </div>
+        }
+
+        <div class="mb-3">
+          <label for="name" class="form-label">Station Name</label>
+          <input
+            type="text"
+            class="form-control"
+            id="name"
+            [value]="name()"
+            (input)="updateName($any($event.target).value)"
+            placeholder="Enter station name"
+            required>
+        </div>
+
+        <div class="mb-3">
+          <label for="address" class="form-label">Address</label>
+          <input
+            type="text"
+            class="form-control"
+            id="address"
+            [value]="address()"
+            (input)="updateAddress($any($event.target).value)"
+            placeholder="Enter address"
+            required>
+        </div>
+
+        <div class="mb-3">
+          <label for="numberOfSlots" class="form-label">Number of Slots</label>
+          <input
+            type="number"
+            class="form-control"
+            id="numberOfSlots"
+            [value]="numberOfSlots()"
+            (input)="updateNumberOfSlots(+$any($event.target).value)"
+            min="1"
+            required>
+        </div>
+
+        <div class="row justify-content-end">
+          <div class="col-auto">
+            <button type="button" class="btn btn-secondary me-2" routerLink="/stations">
+              Cancel
+            </button>
+            <button type="submit" class="btn btn-primary">
+              <i class="bi bi-check"></i> Create Station
+            </button>
+          </div>
+        </div>
+      </form>
+    }
+  </app-card>
+</div>

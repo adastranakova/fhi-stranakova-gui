@@ -1,0 +1,64 @@
+<div class="container">
+  <app-page-title title="Create User"></app-page-title>
+
+  <app-card>
+    @if (loading()) {
+      <app-loader></app-loader>
+    } @else {
+      <form (ngSubmit)="onSubmit()">
+        @if (errorMessage()) {
+          <div class="alert alert-danger" role="alert">
+            {{ errorMessage() }}
+          </div>
+        }
+
+        <div class="mb-3">
+          <label for="name" class="form-label">Name</label>
+          <input
+            type="text"
+            class="form-control"
+            id="name"
+            [value]="name()"
+            (input)="updateName($any($event.target).value)"
+            placeholder="Enter full name"
+            required>
+        </div>
+
+        <div class="mb-3">
+          <label for="email" class="form-label">Email</label>
+          <input
+            type="email"
+            class="form-control"
+            id="email"
+            [value]="email()"
+            (input)="updateEmail($any($event.target).value)"
+            placeholder="Enter email address"
+            required>
+        </div>
+
+        <div class="mb-3">
+          <label for="memberId" class="form-label">Member ID</label>
+          <input
+            type="text"
+            class="form-control"
+            id="memberId"
+            [value]="memberId()"
+            (input)="updateMemberId($any($event.target).value)"
+            placeholder="Enter member ID (e.g., MEM001)"
+            required>
+        </div>
+
+        <div class="row justify-content-end">
+          <div class="col-auto">
+            <button type="button" class="btn btn-secondary me-2" routerLink="/users">
+              Cancel
+            </button>
+            <button type="submit" class="btn btn-primary">
+              <i class="bi bi-check"></i> Create User
+            </button>
+          </div>
+        </div>
+      </form>
+    }
+  </app-card>
+</div>

@@ -1,0 +1,19 @@
+<div class="container">
+  <app-page-title title="Users"></app-page-title>
+
+  <app-card>
+    @if (loading()) {
+      <app-loader></app-loader>
+    } @else {
+      <app-table [columns]="columns" [data]="users()"></app-table>
+
+      <div class="row justify-content-end">
+        <div class="col-auto">
+          <button class="btn btn-primary" routerLink="/users/create">
+            <i class="bi bi-plus"></i> Add User
+          </button>
+        </div>
+      </div>
+    }
+  </app-card>
+</div>

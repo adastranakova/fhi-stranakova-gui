@@ -1,0 +1,19 @@
+<div class="container">
+  <app-page-title title="Stations"></app-page-title>
+
+  <app-card>
+    @if (loading()) {
+      <app-loader></app-loader>
+    } @else {
+      <app-table [columns]="columns" [data]="stations()"></app-table>
+
+      <div class="row justify-content-end">
+        <div class="col-auto">
+          <button class="btn btn-primary" routerLink="/stations/create">
+            <i class="bi bi-plus"></i> Add Station
+          </button>
+        </div>
+      </div>
+    }
+  </app-card>
+</div>

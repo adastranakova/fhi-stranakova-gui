@@ -1,0 +1,15 @@
+<div class="container">
+  <app-page-title title="Active Rentals"></app-page-title>
+
+  <app-card>
+    @if (loading()) {
+      <app-loader></app-loader>
+    } @else {
+      <app-table [columns]="columns" [data]="activeRentals()"></app-table>
+
+      <div class="alert alert-info mt-3" role="alert">
+        <i class="bi bi-info-circle"></i> First 30 minutes are free, then $0.15 per minute.
+      </div>
+    }
+  </app-card>
+</div>
