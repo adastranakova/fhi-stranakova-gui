@@ -1,14 +1,59 @@
 <div class="container">
-  <app-page-title title="Active Rentals"></app-page-title>
+  <app-page-title title="Active Rentals (Simulation)"></app-page-title>
 
   <app-card>
     @if (loading()) {
       <app-loader></app-loader>
     } @else {
-      <app-table [columns]="columns" [data]="activeRentals()"></app-table>
+      @if (rentals().length === 0) {
+        <div class="alert alert-info">
+          <i class="bi bi-info-circle"></i> No active rentals
+        </div>
+      } @else {
+        <table class="table">
+          <thead>
+          <tr>
+            <th>Member ID</th>
+            <th>User Name</th>
+            <th>Bike ID</th>
+            <th>Duration (min)</th>
+            <th>Current Cost</th>
+            <th>Actions</th>
+          </tr>
+          </thead>
+          <tbody>
+            @for (rental of rentals(); track rental.id) {
+              <tr>
+                <td>{{ rental.memberId }}</td>
+                <td>{{ rental.userName }}</td>
+                <td>{{ rental.bikeId }}</td>
+                <td>{{ getDuration(rental.startTime) }} min</td>
+                <td>${{ calculateCost(getDuration(rental.startTime)).toFixed(2) }}</td>
+                <td>
+                  <button class="btn btn-sm btn-success me-1" (click)="endRental(rental.id)">
+                    <i class="bi bi-check-circle"></i> End Rental
+                  </button>
+                  <button class="btn btn-sm btn-danger" (click)="deleteRental(rental.id)">
+                    <i class="bi bi-trash"></i> Delete
+                  </button>
+                </td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      }
 
-      <div class="alert alert-info mt-3" role="alert">
-        <i class="bi bi-info-circle"></i> First 30 minutes are free, then $0.15 per minute.
+      <div class="alert alert-info mt-3">
+        <i class="bi bi-info-circle"></i>
+        <strong>Pricing:</strong> First 30 minutes free, then $0.15 per minute
+      </div>
+
+      <div class="row justify-content-end mt-3">
+        <div class="col-auto">
+          <button class="btn btn-primary" (click)="addRental()">
+            <i class="bi bi-plus"></i> Simulate New Rental
+          </button>
+        </div>
       </div>
     }
   </app-card>

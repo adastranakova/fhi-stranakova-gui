@@ -2,8 +2,6 @@ import { Component, OnInit, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterModule } from '@angular/router';
 import { Bike } from '../../models/bike.model';
-import { Column } from '../../models/column.model';
-import { TableComponent } from '../../components/table/table.component';
 import { CardComponent } from '../../components/card/card.component';
 import { LoaderComponent } from '../../components/loader/loader.component';
 import { PageTitleComponent } from '../../components/page-title/page-title.component';
@@ -12,25 +10,13 @@ import {BikesService} from '../../services/bike.service';
 @Component({
   selector: 'app-bikes',
   standalone: true,
-  imports: [
-    CommonModule,
-    RouterModule,
-    TableComponent,
-    CardComponent,
-    LoaderComponent,
-    PageTitleComponent
-  ],
+  imports: [CommonModule, RouterModule, CardComponent, LoaderComponent, PageTitleComponent],
   templateUrl: './bikes.component.html',
   styles: []
 })
 export class BikesComponent implements OnInit {
   bikes = signal<Bike[]>([]);
   loading = signal(true);
-
-  columns: Column<Bike>[] = [
-    { name: 'Bike ID', value: (row) => row.id },
-    { name: 'Status', value: (row) => row.status }
-  ];
 
   constructor(private bikesService: BikesService) {}
 
@@ -48,6 +34,56 @@ export class BikesComponent implements OnInit {
       error: (error) => {
         console.error('Error loading bikes:', error);
         this.loading.set(false);
+      }
+    });
+  }
+
+  changeStatus(bikeId: string): void {
+    const bike = this.bikes().find(b => b.id === bikeId);
+
+    if (!bike) {
+      console.log('Bike not found in array');
+      return;
+    }
+
+    // Cycle through all statuses: AVAILABLE → MAINTENANCE → RENTED → AVAILABLE
+    let newStatus: string;
+    if (bike.status === 'AVAILABLE') {
+      newStatus = 'MAINTENANCE';
+    } else if (bike.status === 'MAINTENANCE') {
+      newStatus = 'RENTED';
+    } else if (bike.status === 'RENTED') {
+      newStatus = 'AVAILABLE';
+    } else {
+      return;
+    }
+
+    console.log('Calling service to update bike:', bikeId, 'to:', newStatus);
+
+    this.bikesService.updateBikeStatus(bikeId, newStatus).subscribe({
+      next: (response) => {
+        console.log('SUCCESS:', response);
+        this.bikes.update(bikes =>
+          bikes.map(b => b.id === bikeId ? { ...b, status: newStatus } : b)
+        );
+      },
+      error: (error) => {
+        console.error('ERROR:', error);
+        alert('Failed to update bike status');
+      }
+    });
+  }
+
+  deleteBike(bikeId: string): void {
+    if (!confirm(`Delete bike ${bikeId}?`)) return;
+
+    this.bikesService.deleteBike(bikeId).subscribe({
+      next: () => {
+        this.bikes.update(bikes => bikes.filter(b => b.id !== bikeId));
+      },
+      error: (error) => {
+        console.error('Error deleting bike:', error);
+        alert('Failed to delete bike');
       }
     });
   }

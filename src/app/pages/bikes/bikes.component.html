@@ -5,9 +5,43 @@
     @if (loading()) {
       <app-loader></app-loader>
     } @else {
-      <app-table [columns]="columns" [data]="bikes()"></app-table>
+      <table class="table">
+        <thead>
+        <tr>
+          <th>Bike ID</th>
+          <th>Status</th>
+          <th>Actions</th>
+        </tr>
+        </thead>
+        <tbody>
+          @for (bike of bikes(); track bike.id) {
+            <tr>
+              <td>{{ bike.id }}</td>
+              <td>
+                @if (bike.status === 'AVAILABLE') {
+                  <span class="badge bg-success">Available</span>
+                } @else if (bike.status === 'RENTED') {
+                  <span class="badge bg-danger">Rented</span>
+                } @else {
+                  <span class="badge bg-warning text-dark">Maintenance</span>
+                }
+              </td>
+              <td>
+                  <button class="btn btn-sm btn-warning me-1" (click)="changeStatus(bike.id)">
+                    <i class="bi bi-arrow-repeat"></i> Change Status
+                  </button>
+                <button class="btn btn-sm btn-danger"
+                        (click)="deleteBike(bike.id)"
+                        [disabled]="bike.status === 'RENTED'">
+                  <i class="bi bi-trash"></i> Delete
+                </button>
+              </td>
+            </tr>
+          }
+        </tbody>
+      </table>
 
-      <div class="row justify-content-end">
+      <div class="row justify-content-end mt-3">
         <div class="col-auto">
           <button class="btn btn-primary" routerLink="/bikes/create">
             <i class="bi bi-plus"></i> Add Bike

@@ -4,7 +4,6 @@ import { Observable } from 'rxjs';
 import { Bike } from '../models/bike.model';
 import {API_URL} from '../consts/consts';
 
-
 @Injectable({
   providedIn: 'root'
 })
@@ -13,6 +12,7 @@ export class BikesService {
 
   constructor(private http: HttpClient) {}
 
+  // GET all bikes
   getAllBikes(): Observable<Bike[]> {
     return this.http.get<Bike[]>(this.apiUrl);
   }
@@ -20,9 +20,12 @@ export class BikesService {
   getBikeById(id: string): Observable<Bike> {
     return this.http.get<Bike>(`${this.apiUrl}/${id}`);
   }
-
   createBike(bike: { id: string }): Observable<Bike> {
     return this.http.post<Bike>(this.apiUrl, bike);
+  }
+
+  updateBikeStatus(id: string, status: string): Observable<Bike> {
+    return this.http.put<Bike>(`${this.apiUrl}/${id}/status`, { status });
   }
 
   deleteBike(id: string): Observable<void> {

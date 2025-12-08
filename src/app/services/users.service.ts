@@ -25,8 +25,16 @@ export class UsersService {
     return this.http.post<User>(this.apiUrl, user);
   }
 
+  updateUser(memberId: string, data: { name?: string; email?: string }): Observable<User> {
+    return this.http.put<User>(`${this.apiUrl}/${memberId}`, data);
+  }
+
   addFunds(memberId: string, amount: number): Observable<{ balance: number }> {
-    return this.http.post<{ balance: number }>(`${this.apiUrl}/${memberId}/funds`, { amount });
+    return this.http.post<{ balance: number }>(`${this.apiUrl}/${memberId}/add-funds`, { amount });
+  }
+
+  deductFunds(memberId: string, amount: number): Observable<{ balance: number }> {
+    return this.http.post<{ balance: number }>(`${this.apiUrl}/${memberId}/deduct-funds`, { amount });
   }
 
   deleteUser(id: string): Observable<void> {
