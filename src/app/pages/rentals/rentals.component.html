@@ -144,6 +144,8 @@
     </div>
   </div>
 }
+
+@if (showReturnModal()) {
   <div class="modal" style="display: block; background: rgba(0,0,0,0.5);" (click)="closeReturnModal()">
     <div class="modal-dialog" (click)="$event.stopPropagation()">
       <div class="modal-content">
@@ -208,4 +210,4 @@
       </div>
     </div>
   </div>
-
+}

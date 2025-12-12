@@ -1,6 +1,6 @@
 import { Component, OnInit, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { RouterModule } from '@angular/router';
+import { RouterLink } from '@angular/router';
 import { UsersService } from '../../services/users.service';
 import { User } from '../../models/user.model';
 import { CardComponent } from '../../components/card/card.component';
@@ -10,13 +10,19 @@ import { PageTitleComponent } from '../../components/page-title/page-title.compo
 @Component({
   selector: 'app-users',
   standalone: true,
-  imports: [CommonModule, RouterModule, CardComponent, LoaderComponent, PageTitleComponent],
-  templateUrl: './users.component.html',
-  styles: []
+  imports: [CommonModule, RouterLink, CardComponent, LoaderComponent, PageTitleComponent],
+  templateUrl: './users.component.html'
 })
 export class UsersComponent implements OnInit {
   users = signal<User[]>([]);
   loading = signal(true);
+
+  showEditModal = signal(false);
+  editingUser = signal<User | null>(null);
+  editName = signal('');
+  editEmail = signal('');
+  editError = signal('');
+  updating = signal(false);
 
   constructor(private usersService: UsersService) {}
 
@@ -38,49 +44,100 @@ export class UsersComponent implements OnInit {
     });
   }
 
-  editUser(memberId: string): void {
+  // po kliknuti na edit sa spusti,
+  openEditModal(user: User): void {
+    this.editingUser.set(user);
+    this.editName.set(user.name);
+    this.editEmail.set(user.email);
+    this.editError.set('');
+    this.showEditModal.set(true); // v sablone sa vykresli
+  }
+
+  // uzavretie modalu, ak prejde validacia, tabulka pouzivatelov sa obnovi
+  closeEditModal(): void {
+    this.showEditModal.set(false);
+    this.editingUser.set(null);
+    this.editName.set('');
+    this.editEmail.set('');
+    this.editError.set('');
+  }
+
+  updateUser(): void {
+    const user = this.editingUser();
+    if (!user) return;
+
+    if (!this.editName().trim()) {
+      this.editError.set('Name is required');
+      return;
+    }
+
+    if (!this.editEmail().trim()) {
+      this.editError.set('Email is required');
+      return;
+    }
+
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(this.editEmail())) {
+      this.editError.set('Please enter a valid email address');
+      return;
+    }
+
+    this.updating.set(true);
+    this.editError.set('');
+
+    const updates: any = {};
+    if (this.editName() !== user.name) updates.name = this.editName();
+    if (this.editEmail() !== user.email) updates.email = this.editEmail();
+
+    if (Object.keys(updates).length === 0) {
+      this.closeEditModal();
+      return;
+    }
+
+    this.usersService.updateUser(user.memberId, updates).subscribe({
+      next: () => {
+        this.updating.set(false);
+        this.closeEditModal();
+        this.loadUsers(); // Reload to show updated data
+      },
+      error: (error) => {
+        this.updating.set(false);
+        this.editError.set(error.error?.error || 'Failed to update user');
+      }
+    });
+  }
+
+  deleteUser(memberId: string): void {
     const user = this.users().find(u => u.memberId === memberId);
     if (!user) return;
 
-    const name = prompt('New name (leave empty to keep current):', user.name);
-    const email = prompt('New email (leave empty to keep current):', user.email);
+    const confirmed = confirm(`Are you sure you want to delete user "${user.name}" (${memberId})?`);
+    if (!confirmed) return;
 
-    if (!name && !email) return;
-
-    const updates: any = {};
-    if (name && name !== user.name) updates.name = name;
-    if (email && email !== user.email) updates.email = email;
-
-    if (Object.keys(updates).length === 0) return;
-
-    this.usersService.updateUser(memberId, updates).subscribe({
+    this.usersService.deleteUser(memberId).subscribe({
       next: () => {
-        this.users.update(users =>
-          users.map(u => u.memberId === memberId ? { ...u, ...updates } : u)
-        );
+        this.loadUsers(); // Reload after delete
       },
       error: (error) => {
-        console.error('Error updating user:', error);
-        alert('Failed to update user');
+        console.error('Error deleting user:', error);
+        alert('Failed to delete user');
       }
     });
   }
 
   addFunds(memberId: string): void {
-    const amountStr = prompt('Amount to add:');
+    const amountStr = prompt('Enter amount to add:');
     if (!amountStr) return;
 
     const amount = parseFloat(amountStr);
     if (isNaN(amount) || amount <= 0) {
-      alert('Invalid amount');
+      alert('Please enter a valid positive amount');
       return;
     }
 
     this.usersService.addFunds(memberId, amount).subscribe({
-      next: (response) => {
-        this.users.update(users =>
-          users.map(u => u.memberId === memberId ? { ...u, balance: response.balance } : u)
-        );
+      next: () => {
+        this.loadUsers();
       },
       error: (error) => {
         console.error('Error adding funds:', error);
@@ -90,38 +147,22 @@ export class UsersComponent implements OnInit {
   }
 
   deductFunds(memberId: string): void {
-    const amountStr = prompt('Amount to deduct:');
+    const amountStr = prompt('Enter amount to deduct:');
     if (!amountStr) return;
 
     const amount = parseFloat(amountStr);
     if (isNaN(amount) || amount <= 0) {
-      alert('Invalid amount');
+      alert('Please enter a valid positive amount');
       return;
     }
 
     this.usersService.deductFunds(memberId, amount).subscribe({
-      next: (response) => {
-        this.users.update(users =>
-          users.map(u => u.memberId === memberId ? { ...u, balance: response.balance } : u)
-        );
+      next: () => {
+        this.loadUsers();
       },
       error: (error) => {
         console.error('Error deducting funds:', error);
-        alert('Failed to deduct funds - may be insufficient balance');
-      }
-    });
-  }
-
-  deleteUser(memberId: string): void {
-    if (!confirm(`Delete user ${memberId}?`)) return;
-
-    this.usersService.deleteUser(memberId).subscribe({
-      next: () => {
-        this.users.update(users => users.filter(u => u.memberId !== memberId));
-      },
-      error: (error) => {
-        console.error('Error deleting user:', error);
-        alert('Failed to delete user');
+        alert('Failed to deduct funds');
       }
     });
   }

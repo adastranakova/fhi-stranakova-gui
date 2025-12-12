@@ -21,6 +21,8 @@ import { PageTitleComponent } from '../../components/page-title/page-title.compo
   templateUrl: './create-station.component.html',
   styles: []
 })
+
+// vytvorenie komponentu
 export class CreateStationComponent {
   name = signal('');
   address = signal('');
@@ -49,7 +51,7 @@ export class CreateStationComponent {
     }).subscribe({
       next: () => {
         this.loading.set(false);
-        this.router.navigate(['/stations']);
+        this.router.navigate(['/stations']); // vratenie sa na stranku stanic
       },
       error: (error) => {
         this.loading.set(false);

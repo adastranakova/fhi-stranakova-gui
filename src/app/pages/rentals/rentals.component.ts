@@ -26,19 +26,16 @@ interface ActiveRental {
 export class RentalsComponent implements OnInit {
   activeRentals = signal<ActiveRental[]>([]);
   loading = signal(true);
-
-  // For rent bike modal
   showRentModal = signal(false);
   availableUsers = signal<any[]>([]);
   availableStations = signal<any[]>([]);
   availableBikesAtStation = signal<any[]>([]);
   selectedMemberId = signal('');
   selectedStationName = signal('');
-  selectedBikeId = signal('');  // ✅ SIMPLIFIED: Select bike directly
+  selectedBikeId = signal('');
   rentError = signal('');
   renting = signal(false);
 
-  // For return bike modal
   showReturnModal = signal(false);
   returnMemberId = signal('');
   returnStationName = signal('');
@@ -55,11 +52,9 @@ export class RentalsComponent implements OnInit {
     this.loadActiveRentals();
     this.loadUsersAndStations();
 
-    // Refresh rentals every 30 seconds
     setInterval(() => this.loadActiveRentals(), 30000);
   }
 
-  // ✅ SIMPLIFIED: Use the actual endpoint
   loadActiveRentals(): void {
     this.loading.set(true);
 
@@ -92,7 +87,6 @@ export class RentalsComponent implements OnInit {
     });
   }
 
-  // ✅ SIMPLIFIED: Load bikes when station selected
   onStationChange(stationName: string): void {
     this.selectedStationName.set(stationName);
     this.selectedBikeId.set('');
@@ -125,9 +119,6 @@ export class RentalsComponent implements OnInit {
     return Math.max(0, (minutes - 30) * 0.15);
   }
 
-  // ===================================
-  // RENT BIKE
-  // ===================================
   openRentModal(): void {
     this.showRentModal.set(true);
     this.selectedMemberId.set('');

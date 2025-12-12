@@ -62,6 +62,7 @@ export class StationsComponent implements OnInit {
     const station = this.stations().find(s => s.name === name);
     if (!station) return;
 
+    // browser prompty, nepracuje s angularom - len mu dame vysledok
     const newName = prompt('New name (leave empty to keep current):', station.name);
     const newAddress = prompt('New address (leave empty to keep current):', station.address);
 
@@ -113,7 +114,6 @@ export class StationsComponent implements OnInit {
       slotNumber: slot.slotNumber,
       isEmpty: slot.status === 'EMPTY',
       bikeId: slot.bikeId,
-      password: slot.password,  // ✅ Include password
       status: slot.status
     }));
 
@@ -125,57 +125,5 @@ export class StationsComponent implements OnInit {
     this.showModal.set(false);
     this.selectedStation.set('');
     this.modalSlots.set([]);
-  }
-
-  addBikeToSlot(slot: any): void {
-    const bikeId = prompt('Enter Bike ID to add to this slot:');
-    if (!bikeId) return;
-
-    const stationName = this.selectedStation();
-
-    this.stationsService.lockBike(stationName, bikeId).subscribe({
-      next: (response) => {
-        alert(`Bike locked successfully!\nPassword: ${response.password}\n(Save this password for unlocking)`);
-
-        this.modalSlots.update(slots =>
-          slots.map(s => s.slotNumber === slot.slotNumber
-            ? { ...s, isEmpty: false, bikeId: bikeId, password: response.password }
-            : s
-          )
-        );
-
-        this.loadStations();
-      },
-      error: (error) => {
-        console.error('Error locking bike:', error);
-        alert('Failed to lock bike. Make sure the bike exists and slot is empty.');
-      }
-    });
-  }
-
-  unlockBikeFromSlot(slot: any): void {
-    const password = slot.password || prompt('Enter password to unlock this bike:');
-    if (!password) return;
-
-    const stationName = this.selectedStation();
-
-    this.stationsService.unlockBike(stationName, password).subscribe({
-      next: (response) => {
-        alert(`Bike ${response.bikeId} unlocked successfully!`);
-
-        this.modalSlots.update(slots =>
-          slots.map(s => s.slotNumber === slot.slotNumber
-            ? { ...s, isEmpty: true, bikeId: null, password: null }
-            : s
-          )
-        );
-
-        this.loadStations();
-      },
-      error: (error) => {
-        console.error('Error unlocking bike:', error);
-        alert('Failed to unlock bike. Check the password.');
-      }
-    });
   }
 }

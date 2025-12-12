@@ -86,7 +86,8 @@ export class BikesComponent implements OnInit {
       },
       error: (error) => {
         console.error('Error deleting bike:', error);
-        alert('Failed to delete bike');
+        const message = error.error?.error || 'Failed to delete bike';
+        alert(message); // neda sa vymazat bicykel s historiou prenajmov
       }
     });
   }

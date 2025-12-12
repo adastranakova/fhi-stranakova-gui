@@ -14,6 +14,6 @@ export const routes: Routes = [
   { path: 'users', component: UsersComponent },
   { path: 'users/create', component: CreateUserComponent },
   { path: 'stations', component: StationsComponent },
-  { path: 'stations/create', component: CreateStationComponent },
+  { path: 'stations/create', component: CreateStationComponent }, // konfiguracia routeru
   { path: 'rentals', component: RentalsComponent }
 ];
