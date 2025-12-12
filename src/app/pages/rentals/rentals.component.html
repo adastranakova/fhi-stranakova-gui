@@ -1,13 +1,13 @@
 <div class="container">
-  <app-page-title title="Active Rentals (Simulation)"></app-page-title>
+  <app-page-title title="Active Rentals"></app-page-title>
 
   <app-card>
     @if (loading()) {
       <app-loader></app-loader>
     } @else {
-      @if (rentals().length === 0) {
+      @if (activeRentals().length === 0) {
         <div class="alert alert-info">
-          <i class="bi bi-info-circle"></i> No active rentals
+          <i class="bi bi-info-circle"></i> No active rentals at the moment
         </div>
       } @else {
         <table class="table">
@@ -16,13 +16,13 @@
             <th>Member ID</th>
             <th>User Name</th>
             <th>Bike ID</th>
-            <th>Duration (min)</th>
+            <th>Duration</th>
             <th>Current Cost</th>
             <th>Actions</th>
           </tr>
           </thead>
           <tbody>
-            @for (rental of rentals(); track rental.id) {
+            @for (rental of activeRentals(); track rental.rentalId) {
               <tr>
                 <td>{{ rental.memberId }}</td>
                 <td>{{ rental.userName }}</td>
@@ -30,11 +30,8 @@
                 <td>{{ getDuration(rental.startTime) }} min</td>
                 <td>${{ calculateCost(getDuration(rental.startTime)).toFixed(2) }}</td>
                 <td>
-                  <button class="btn btn-sm btn-success me-1" (click)="endRental(rental.id)">
-                    <i class="bi bi-check-circle"></i> End Rental
-                  </button>
-                  <button class="btn btn-sm btn-danger" (click)="deleteRental(rental.id)">
-                    <i class="bi bi-trash"></i> Delete
+                  <button class="btn btn-sm btn-success" (click)="openReturnModal(rental)">
+                    <i class="bi bi-check-circle"></i> Return Bike
                   </button>
                 </td>
               </tr>
@@ -50,11 +47,165 @@
 
       <div class="row justify-content-end mt-3">
         <div class="col-auto">
-          <button class="btn btn-primary" (click)="addRental()">
-            <i class="bi bi-plus"></i> Simulate New Rental
+          <button class="btn btn-primary" (click)="openRentModal()">
+            <i class="bi bi-plus"></i> Rent a Bike
           </button>
         </div>
       </div>
     }
   </app-card>
 </div>
+
+@if (showRentModal()) {
+  <div class="modal" style="display: block; background: rgba(0,0,0,0.5);" (click)="closeRentModal()">
+    <div class="modal-dialog" (click)="$event.stopPropagation()">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title">Rent a Bike</h5>
+          <button type="button" class="btn-close" (click)="closeRentModal()"></button>
+        </div>
+        <div class="modal-body">
+          @if (rentError()) {
+            <div class="alert alert-danger">
+              {{ rentError() }}
+            </div>
+          }
+
+          <div class="mb-3">
+            <label class="form-label">Select User</label>
+            <select
+              class="form-select"
+              [value]="selectedMemberId()"
+              (change)="selectedMemberId.set($any($event.target).value)">
+              <option value="">Choose a user...</option>
+              @for (user of availableUsers(); track user.memberId) {
+                <option [value]="user.memberId">
+                  {{ user.name }} ({{ user.memberId }}) - Balance: ${{ (+user.balance).toFixed(2) }}
+                </option>
+              }
+            </select>
+          </div>
+
+          <div class="mb-3">
+            <label class="form-label">Select Station</label>
+            <select
+              class="form-select"
+              [value]="selectedStationName()"
+              (change)="onStationChange($any($event.target).value)">
+              <option value="">Choose a station...</option>
+              @for (station of availableStations(); track station.name) {
+                <option [value]="station.name">
+                  {{ station.name }} ({{ station.availableBikes }} bikes available)
+                </option>
+              }
+            </select>
+          </div>
+
+          @if (selectedStationName()) {
+            <div class="mb-3">
+              <label class="form-label">Select Bike</label>
+              @if (availableBikesAtStation().length === 0) {
+                <div class="alert alert-warning">
+                  <i class="bi bi-exclamation-triangle"></i>
+                  No bikes available at this station
+                </div>
+              } @else {
+                <select
+                  class="form-select"
+                  [value]="selectedBikeId()"
+                  (change)="selectedBikeId.set($any($event.target).value)">
+                  <option value="">Choose a bike...</option>
+                  @for (bike of availableBikesAtStation(); track bike.bikeId) {
+                    <option [value]="bike.bikeId">
+                      {{ bike.bikeId }} (Slot {{ bike.slotNumber }})
+                    </option>
+                  }
+                </select>
+              }
+            </div>
+          }
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" (click)="closeRentModal()">
+            Cancel
+          </button>
+          <button
+            type="button"
+            class="btn btn-primary"
+            (click)="rentBike()"
+            [disabled]="renting() || !selectedMemberId() || !selectedBikeId()">
+            @if (renting()) {
+              <span class="spinner-border spinner-border-sm me-1"></span>
+            }
+            Rent Bike
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+}
+  <div class="modal" style="display: block; background: rgba(0,0,0,0.5);" (click)="closeReturnModal()">
+    <div class="modal-dialog" (click)="$event.stopPropagation()">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title">Return Bike</h5>
+          <button type="button" class="btn-close" (click)="closeReturnModal()"></button>
+        </div>
+        <div class="modal-body">
+          @if (returnError()) {
+            <div class="alert alert-danger">
+              {{ returnError() }}
+            </div>
+          }
+
+          <div class="mb-3">
+            <label class="form-label">Member ID</label>
+            <input
+              type="text"
+              class="form-control"
+              [value]="returnMemberId()"
+              disabled>
+          </div>
+
+          <div class="mb-3">
+            <label class="form-label">Return Station</label>
+            <select
+              class="form-select"
+              [value]="returnStationName()"
+              (change)="returnStationName.set($any($event.target).value)">
+              <option value="">Choose a station...</option>
+              @for (station of availableStations(); track station.name) {
+                <option [value]="station.name">
+                  {{ station.name }} ({{ station.address }})
+                </option>
+              }
+            </select>
+            <small class="text-muted">
+              The system will automatically find an empty slot
+            </small>
+          </div>
+
+          <div class="alert alert-info">
+            <i class="bi bi-info-circle"></i>
+            The cost will be calculated and deducted from your balance
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" (click)="closeReturnModal()">
+            Cancel
+          </button>
+          <button
+            type="button"
+            class="btn btn-success"
+            (click)="returnBike()"
+            [disabled]="returning()">
+            @if (returning()) {
+              <span class="spinner-border spinner-border-sm me-1"></span>
+            }
+            Return Bike
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+

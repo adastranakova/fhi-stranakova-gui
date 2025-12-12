@@ -1,11 +1,15 @@
 import { Component, OnInit, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { FormsModule } from '@angular/forms';
 import { CardComponent } from '../../components/card/card.component';
 import { LoaderComponent } from '../../components/loader/loader.component';
 import { PageTitleComponent } from '../../components/page-title/page-title.component';
+import { RentalsService } from '../../services/rentals.service';
+import { UsersService } from '../../services/users.service';
+import { StationsService } from '../../services/stations.service';
 
-interface Rental {
-  id: number;
+interface ActiveRental {
+  rentalId: number;
   memberId: string;
   userName: string;
   bikeId: string;
@@ -15,75 +19,217 @@ interface Rental {
 @Component({
   selector: 'app-rentals',
   standalone: true,
-  imports: [CommonModule, CardComponent, LoaderComponent, PageTitleComponent],
+  imports: [CommonModule, FormsModule, CardComponent, LoaderComponent, PageTitleComponent],
   templateUrl: './rentals.component.html',
   styles: []
 })
 export class RentalsComponent implements OnInit {
-  rentals = signal<Rental[]>([]);
-  loading = signal(false);
-  nextId = 1;
+  activeRentals = signal<ActiveRental[]>([]);
+  loading = signal(true);
+
+  // For rent bike modal
+  showRentModal = signal(false);
+  availableUsers = signal<any[]>([]);
+  availableStations = signal<any[]>([]);
+  availableBikesAtStation = signal<any[]>([]);
+  selectedMemberId = signal('');
+  selectedStationName = signal('');
+  selectedBikeId = signal('');  // ✅ SIMPLIFIED: Select bike directly
+  rentError = signal('');
+  renting = signal(false);
+
+  // For return bike modal
+  showReturnModal = signal(false);
+  returnMemberId = signal('');
+  returnStationName = signal('');
+  returnError = signal('');
+  returning = signal(false);
+
+  constructor(
+    private rentalsService: RentalsService,
+    private usersService: UsersService,
+    private stationsService: StationsService
+  ) {}
 
   ngOnInit(): void {
-    // Load sample data - one rental started 45 minutes ago
-    this.rentals.set([
-      {
-        id: this.nextId++,
-        memberId: 'MEM001',
-        userName: 'Alice Smith',
-        bikeId: 'BIKE002',
-        startTime: new Date(Date.now() - 45 * 60 * 1000)
+    this.loadActiveRentals();
+    this.loadUsersAndStations();
+
+    // Refresh rentals every 30 seconds
+    setInterval(() => this.loadActiveRentals(), 30000);
+  }
+
+  // ✅ SIMPLIFIED: Use the actual endpoint
+  loadActiveRentals(): void {
+    this.loading.set(true);
+
+    this.rentalsService.getAllActiveRentals().subscribe({
+      next: (rentals) => {
+        this.activeRentals.set(rentals);
+        this.loading.set(false);
+      },
+      error: (error) => {
+        console.error('Error loading active rentals:', error);
+        this.activeRentals.set([]);
+        this.loading.set(false);
       }
-    ]);
+    });
+  }
+
+  loadUsersAndStations(): void {
+    this.usersService.getAllUsers().subscribe({
+      next: (users) => {
+        this.availableUsers.set(users);
+      },
+      error: (error) => console.error('Error loading users:', error)
+    });
+
+    this.stationsService.getAllStations().subscribe({
+      next: (stations) => {
+        this.availableStations.set(stations);
+      },
+      error: (error) => console.error('Error loading stations:', error)
+    });
+  }
+
+  // ✅ SIMPLIFIED: Load bikes when station selected
+  onStationChange(stationName: string): void {
+    this.selectedStationName.set(stationName);
+    this.selectedBikeId.set('');
+    this.availableBikesAtStation.set([]);
+
+    if (!stationName) return;
+
+    const station = this.availableStations().find(s => s.name === stationName);
+    if (!station) return;
+
+    // Get bikes at this station
+    const bikes = station.slots
+      .filter((slot: any) => slot.bikeId !== null)
+      .map((slot: any) => ({
+        bikeId: slot.bikeId,
+        slotNumber: slot.slotNumber
+      }));
+
+    this.availableBikesAtStation.set(bikes);
   }
 
   getDuration(startTime: Date): number {
     const now = new Date();
-    const diff = now.getTime() - new Date(startTime).getTime();
-    return Math.floor(diff / 60000); // Convert to minutes
+    const start = new Date(startTime);
+    const diff = now.getTime() - start.getTime();
+    return Math.floor(diff / 60000);
   }
 
   calculateCost(minutes: number): number {
-    // First 30 minutes free, then $0.15 per minute
     return Math.max(0, (minutes - 30) * 0.15);
   }
 
-  addRental(): void {
-    const memberId = prompt('Enter Member ID:');
-    const userName = prompt('Enter User Name:');
-    const bikeId = prompt('Enter Bike ID:');
+  // ===================================
+  // RENT BIKE
+  // ===================================
+  openRentModal(): void {
+    this.showRentModal.set(true);
+    this.selectedMemberId.set('');
+    this.selectedStationName.set('');
+    this.selectedBikeId.set('');
+    this.availableBikesAtStation.set([]);
+    this.rentError.set('');
+  }
 
-    if (!memberId || !userName || !bikeId) {
-      alert('All fields required');
+  closeRentModal(): void {
+    this.showRentModal.set(false);
+  }
+
+  // ✅ SIMPLIFIED: Just send user + bike ID (no password!)
+  rentBike(): void {
+    if (!this.selectedMemberId() || !this.selectedBikeId()) {
+      this.rentError.set('Please select user and bike');
       return;
     }
 
-    const rental: Rental = {
-      id: this.nextId++,
-      memberId,
-      userName,
-      bikeId,
-      startTime: new Date()
-    };
+    this.renting.set(true);
+    this.rentError.set('');
 
-    this.rentals.update(rentals => [...rentals, rental]);
+    this.rentalsService.rentBike({
+      memberId: this.selectedMemberId(),
+      bikeId: this.selectedBikeId()
+    }).subscribe({
+      next: (response) => {
+        this.renting.set(false);
+        this.closeRentModal();
+        this.loadActiveRentals();
+        this.loadUsersAndStations();
+        alert(`Bike ${response.bikeId} rented successfully!`);
+      },
+      error: (error) => {
+        this.renting.set(false);
+        this.rentError.set(error.error?.error || 'Failed to rent bike');
+      }
+    });
   }
 
-  endRental(id: number): void {
-    const rental = this.rentals().find(r => r.id === id);
-    if (!rental) return;
+  // ===================================
+  // RETURN BIKE
+  // ===================================
+  openReturnModal(rental: ActiveRental): void {
+    this.showReturnModal.set(true);
+    this.returnMemberId.set(rental.memberId);
+    this.returnStationName.set('');
+    this.returnError.set('');
+  }
+
+  closeReturnModal(): void {
+    this.showReturnModal.set(false);
+  }
+
+  returnBike(): void {
+    if (!this.returnStationName()) {
+      this.returnError.set('Please select a station');
+      return;
+    }
+
+    const rental = this.activeRentals().find(r => r.memberId === this.returnMemberId());
+    if (!rental) {
+      this.returnError.set('Rental not found');
+      return;
+    }
 
     const duration = this.getDuration(rental.startTime);
     const cost = this.calculateCost(duration);
 
-    if (confirm(`End rental?\nDuration: ${duration} min\nCost: $${cost.toFixed(2)}`)) {
-      this.rentals.update(rentals => rentals.filter(r => r.id !== id));
-      alert(`Rental ended! Charged: $${cost.toFixed(2)}`);
+    if (!confirm(
+      `Return bike?\n\n` +
+      `Duration: ${duration} minutes\n` +
+      `Cost: $${cost.toFixed(2)}\n\n` +
+      `Continue?`
+    )) {
+      return;
     }
-  }
 
-  deleteRental(id: number): void {
-    if (!confirm('Delete this rental?')) return;
-    this.rentals.update(rentals => rentals.filter(r => r.id !== id));
+    this.returning.set(true);
+    this.returnError.set('');
+
+    this.rentalsService.returnBike({
+      memberId: this.returnMemberId(),
+      stationName: this.returnStationName()
+    }).subscribe({
+      next: (response) => {
+        this.returning.set(false);
+        this.closeReturnModal();
+        this.loadActiveRentals();
+        this.loadUsersAndStations();
+        alert(
+          `Bike returned successfully!\n\n` +
+          `Slot: ${response.slotNumber}\n` +
+          `Cost: $${response.cost.toFixed(2)}\n` +
+          `New Balance: $${response.balance.toFixed(2)}`
+        );
+      },
+      error: (error) => {
+        this.returning.set(false);
+        this.returnError.set(error.error?.error || 'Failed to return bike');
+      }
+    });
   }
 }

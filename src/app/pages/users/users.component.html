@@ -21,7 +21,7 @@
               <td>{{ user.memberId }}</td>
               <td>{{ user.name }}</td>
               <td>{{ user.email }}</td>
-              <td>${{ user.balance.toFixed(2) }}</td>
+              <td>${{ (+user.balance).toFixed(2) }}</td>
               <td>
                 <button class="btn btn-sm btn-info me-1" (click)="editUser(user.memberId)">
                   <i class="bi bi-pencil"></i> Edit

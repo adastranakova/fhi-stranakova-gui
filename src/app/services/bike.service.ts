@@ -12,7 +12,6 @@ export class BikesService {
 
   constructor(private http: HttpClient) {}
 
-  // GET all bikes
   getAllBikes(): Observable<Bike[]> {
     return this.http.get<Bike[]>(this.apiUrl);
   }

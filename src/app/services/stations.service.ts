@@ -32,8 +32,8 @@ export class StationsService {
     return this.http.delete<void>(`${this.apiUrl}/${name}`);
   }
 
-  lockBike(stationName: string, bikeId: string, slotNumber: number): Observable<any> {
-    return this.http.post(`${this.apiUrl}/${stationName}/lock`, { bikeId, slotNumber });
+  lockBike(stationName: string, bikeId: string): Observable<any> {
+    return this.http.post(`${this.apiUrl}/${stationName}/lock`, { bikeId });
   }
 
   unlockBike(stationName: string, password: string): Observable<any> {

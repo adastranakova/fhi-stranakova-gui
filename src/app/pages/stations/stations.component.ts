@@ -109,15 +109,13 @@ export class StationsComponent implements OnInit {
 
     this.selectedStation.set(stationName);
 
-    // Create slots array (simplified - showing slot numbers)
-    const slots = [];
-    for (let i = 1; i <= station.numberOfSlots; i++) {
-      slots.push({
-        slotNumber: i,
-        isEmpty: true,
-        bikeId: null
-      });
-    }
+    const slots = station.slots.map(slot => ({
+      slotNumber: slot.slotNumber,
+      isEmpty: slot.status === 'EMPTY',
+      bikeId: slot.bikeId,
+      password: slot.password,  // ✅ Include password
+      status: slot.status
+    }));
 
     this.modalSlots.set(slots);
     this.showModal.set(true);
@@ -129,25 +127,23 @@ export class StationsComponent implements OnInit {
     this.modalSlots.set([]);
   }
 
-  addBikeToSlot(slotNumber: number): void {
+  addBikeToSlot(slot: any): void {
     const bikeId = prompt('Enter Bike ID to add to this slot:');
     if (!bikeId) return;
 
     const stationName = this.selectedStation();
 
-    this.stationsService.lockBike(stationName, bikeId, slotNumber).subscribe({
+    this.stationsService.lockBike(stationName, bikeId).subscribe({
       next: (response) => {
         alert(`Bike locked successfully!\nPassword: ${response.password}\n(Save this password for unlocking)`);
 
-        // Update slot display
         this.modalSlots.update(slots =>
-          slots.map(s => s.slotNumber === slotNumber
-            ? { ...s, isEmpty: false, bikeId: bikeId }
+          slots.map(s => s.slotNumber === slot.slotNumber
+            ? { ...s, isEmpty: false, bikeId: bikeId, password: response.password }
             : s
           )
         );
 
-        // Refresh stations list to update available bikes count
         this.loadStations();
       },
       error: (error) => {
@@ -157,8 +153,8 @@ export class StationsComponent implements OnInit {
     });
   }
 
-  unlockBikeFromSlot(slotNumber: number): void {
-    const password = prompt('Enter password to unlock this bike:');
+  unlockBikeFromSlot(slot: any): void {
+    const password = slot.password || prompt('Enter password to unlock this bike:');
     if (!password) return;
 
     const stationName = this.selectedStation();
@@ -167,15 +163,13 @@ export class StationsComponent implements OnInit {
       next: (response) => {
         alert(`Bike ${response.bikeId} unlocked successfully!`);
 
-        // Update slot display
         this.modalSlots.update(slots =>
-          slots.map(s => s.slotNumber === slotNumber
-            ? { ...s, isEmpty: true, bikeId: null }
+          slots.map(s => s.slotNumber === slot.slotNumber
+            ? { ...s, isEmpty: true, bikeId: null, password: null }
             : s
           )
         );
 
-        // Refresh stations list
         this.loadStations();
       },
       error: (error) => {

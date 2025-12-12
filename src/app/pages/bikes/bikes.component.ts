@@ -14,12 +14,15 @@ import {BikesService} from '../../services/bike.service';
   templateUrl: './bikes.component.html',
   styles: []
 })
+
+// trieda implementuje rozhranie OnInit (nacitanie dat z API, nastavenie premennych, inicializacia)*
 export class BikesComponent implements OnInit {
   bikes = signal<Bike[]>([]);
   loading = signal(true);
 
   constructor(private bikesService: BikesService) {}
 
+  // toto musi obsahovat*
   ngOnInit(): void {
     this.loadBikes();
   }
@@ -46,7 +49,7 @@ export class BikesComponent implements OnInit {
       return;
     }
 
-    // Cycle through all statuses: AVAILABLE → MAINTENANCE → RENTED → AVAILABLE
+    // vieme sa medzi nimi cyklovat na ukazku zmeny: AVAILABLE → MAINTENANCE → RENTED → AVAILABLE
     let newStatus: string;
     if (bike.status === 'AVAILABLE') {
       newStatus = 'MAINTENANCE';
